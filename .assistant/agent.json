@@ -1,0 +1,8 @@
+{
+  "autonomy": "full",
+  "interaction": "non-interactive",
+  "safeOperations": ["edit", "test", "typecheck", "build"],
+  "confirmOnlyFor": ["publish", "release", "delete-many", "rotate-secrets"],
+  "notes": "This file declares the repo’s preference for full, non-interactive automation. Destructive or security-sensitive actions still require explicit instruction."
+}
+
