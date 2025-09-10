@@ -9,6 +9,16 @@ A TypeScript + Jest toolkit to analyze Angular components and routing configurat
 - **Output**: the set of methods invoked anywhere within the class on instances whose types originate from the target modules.
 - Also returns per-instance details and a union of all methods used; minimal template info is captured for reference only.
 
+### Phase 2 (Experimental): Recursive Component & Service Graph
+- **Status**: prototype (API/output unstable).
+- **What it does**: starting from one or more root components, recursively discovers:
+  - Child components referenced via element selectors in inline/external templates (e.g. `<child-comp>`)
+  - Injected services (constructor parameter/parameter property types) and their own injected service dependencies
+- **Graph output**: nodes (kind: component | service) + edges with reasons `root`, `template-tag`, `injects`.
+- **Aggregate**: union of all service method names used in each analyzed component (reuses Phase 1 analyzer internally).
+- **Current limits**: no attribute or structural directive selectors (`[x]`, `*ngIf`), no route-derived roots yet, regex-based template scanning only.
+- See docs/architecture.md (Phase 2 Prototype section) for details and future enhancement roadmap.
+
 ### Route Analysis
 - **Input**: Angular project path with optional file patterns for routing files.
 - **Output**: all route definitions that contain `data.menuId` properties, including:
@@ -42,6 +52,14 @@ npm run analyze -- <component-file> -m <module1,module2>
 npm run analyze-routes -- <project-path>
 npm run analyze-routes -- <project-path> --json
 npm run analyze-routes -- <project-path> --include "**/*routing*.ts"
+
+# Recursive component + service graph (experimental)
+# Root format: <file:ClassName>
+npm run analyze-recursive -- --root ./__tests__/fixtures/recursive/root.component.ts:RootComponent
+
+# With target modules, depth/node limits and JSON output written to file
+npm run analyze-recursive -- --root ./__tests__/fixtures/recursive/root.component.ts:RootComponent \
+  --target-mods target-module --max-depth 5 --max-nodes 100 --json --out graph.json
 ```
 
 ## Usage Examples
@@ -70,8 +88,96 @@ npm run analyze-routes -- ./src --include "**/*routing*.ts,**/app.module.ts"
 npm run analyze-routes -- ./src --exclude "**/node_modules/**,**/dist/**"
 ```
 
+### Recursive Graph (Experimental)
+```bash
+# Basic traversal from a single root component
+npm run analyze-recursive -- --root ./__tests__/fixtures/recursive/root.component.ts:RootComponent
+
+# Multiple roots
+npm run analyze-recursive -- \
+  --root ./path/to/feature-a/root-a.component.ts:FeatureARootComponent \
+  --root ./path/to/feature-b/root-b.component.ts:FeatureBRootComponent
+
+# Include target modules for Phase 1 method usage inside each component
+npm run analyze-recursive -- --root ./root.component.ts:AppComponent --target-mods target-module,@angular/core
+
+# Limit traversal depth and total nodes
+npm run analyze-recursive -- --root ./root.component.ts:AppComponent --max-depth 4 --max-nodes 250
+
+# Emit JSON graph to stdout
+npm run analyze-recursive -- --root ./root.component.ts:AppComponent --json
+
+# Emit JSON graph to file
+npm run analyze-recursive -- --root ./root.component.ts:AppComponent --json --out graph.json
+```
+
+#### Recursive Graph JSON (Experimental)
+Minimal schema excerpt (fields may evolve):
+```json
+{
+  "nodes": [
+    {
+      "kind": "component | service",
+      "file": "string (absolute path)",
+      "className": "string",
+      "selector": "string? (components only)",
+      "direct": {
+        "instances": [
+          { "propertyName": "string", "typeName": "string", "methodsUsed": ["string", "..."] }
+        ],
+        "allMethodsUsed": ["string", "..."],
+        "template": { "inline": "string?", "filePath": "string?" }
+      },
+      "serviceHeuristics": ["decorator" | "filename" | "generic"],
+      "diagnostics": ["string", "..."]
+    }
+  ],
+  "edges": [
+    { "from": { "file": "string", "className": "string" }, "to": { "file": "string", "className": "string" }, "reason": "root | template-tag | injects" }
+  ],
+  "aggregate": { "allMethodsUsed": ["string", "..."] },
+  "diagnostics": ["string", "..."],
+  "limits": { "maxDepth": 0, "maxNodes": 0, "truncated": false }
+}
+```
+
+Truncated sample output:
+```json
+{
+  "nodes": [
+    {
+      "kind": "component",
+      "file": "/abs/path/root.component.ts",
+      "className": "RootComponent",
+      "selector": "root-comp",
+      "direct": {
+        "instances": [],
+        "allMethodsUsed": [],
+        "template": { "inline": "<child-comp></child-comp>" }
+      }
+    },
+    {
+      "kind": "component",
+      "file": "/abs/path/child.component.ts",
+      "className": "ChildComponent"
+    },
+    { "kind": "service", "file": "/abs/path/service-a.service.ts", "className": "ServiceA" },
+    { "kind": "service", "file": "/abs/path/service-b.service.ts", "className": "ServiceB" }
+  ],
+  "edges": [
+    { "from": { "file": "/abs/path/root.component.ts", "className": "RootComponent" }, "to": { "file": "/abs/path/child.component.ts", "className": "ChildComponent" }, "reason": "template-tag" },
+    { "from": { "file": "/abs/path/root.component.ts", "className": "RootComponent" }, "to": { "file": "/abs/path/service-a.service.ts", "className": "ServiceA" }, "reason": "injects" },
+    { "from": { "file": "/abs/path/service-a.service.ts", "className": "ServiceA" }, "to": { "file": "/abs/path/service-b.service.ts", "className": "ServiceB" }, "reason": "injects" }
+  ],
+  "aggregate": { "allMethodsUsed": [] },
+  "diagnostics": [],
+  "limits": { "maxDepth": 5, "maxNodes": 500, "truncated": false }
+}
+```
+
 ## Notes
 - Core analysis lives under src/analysis (AngularComponentAnalyzer plus supporting pieces).
+- Recursive graph prototype: src/analysis/RecursiveGraphAnalyzer.ts (experimental; subject to change).
 - Route analysis: src/analysis/RouteAnalyzer.ts
 - Batch: src/analysis/BatchAnalyzer.ts
 - Shared project host: src/analysis/ProjectHost.ts
@@ -89,6 +195,7 @@ npm run analyze-routes -- ./src --exclude "**/node_modules/**,**/dist/**"
 - **typecheck**: runs TypeScript type-checking (no emit) against src.
 - **analyze**: analyze Angular components for service usage patterns.
 - **analyze-routes**: find Angular routes with data.menuId properties.
+- **analyze-recursive**: experimental recursive component + service graph.
 
 ## JetBrains Rider
 - You can create run/debug configurations for npm scripts (test, test:watch, build, typecheck, analyze, analyze-routes) and share them as needed.

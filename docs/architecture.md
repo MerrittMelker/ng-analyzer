@@ -110,11 +110,57 @@ Integration tests
 - Produce a dependency tree annotated with discovery reasons.
 - Add a stable CLI entrypoint to analyze a list of root components.
 
-## Performance notes
-- Use a shared ts-morph Project for the entire run.
-- Short-circuit early when targetModules is empty.
-- Cache import analysis per file if needed.
+## Phase 2 Prototype (Experimental – Implemented)
+This repository now includes an experimental recursive graph analyzer (`RecursiveGraphAnalyzer`). It is intentionally minimal and subject to change.
 
-## Diagnostics
-- Keep simple string diagnostics for now (e.g., missing file/class, not an @Component, unresolved templateUrl). Later, standardize with codes in diagnostics.ts.
+Current capabilities
+- Traverses from one or more root components (file + class name).
+- Builds a graph of:
+  - Components discovered via element selectors in inline/external templates (e.g. `<child-comp>`)
+  - Services (and other classes) injected through constructor parameters or parameter properties (component -> service, service -> service)
+- Records edges with reasons: `template-tag` and `injects` (plus `root`).
+- Aggregates per-component method usage by reusing Phase 1 `AngularComponentAnalyzer` results.
+- Deduplicates nodes and prevents infinite cycles via a visited set.
 
+Limitations / intentionally deferred
+- No attribute / structural directive selector parsing yet (e.g. `[focusTrap]`, `*ngIf`).
+- No class (`.foo`) or attribute-only selectors processed.
+- No route-driven discovery integration.
+- Service method usage inside services themselves is not aggregated (only component instance method usage union is summarized).
+- Template parsing is regex-based (simple tag extraction) and may produce false negatives in complex HTML.
+
+### CLI Entry (Experimental)
+The recursive prototype now exposes a CLI script:
+`npm run analyze-recursive -- --root <file:ClassName> [--root <file:ClassName> ...] [--target-mods a,b] [--max-depth N] [--max-nodes N] [--json] [--out graph.json]`
+
+Outputs a summary to stdout. With `--json` it emits full graph JSON (optionally to a file via `--out`).
+
+Data model (simplified)
+- Nodes: `{ kind: 'component' | 'service', file, className, selector?, direct? }`
+- Edges: `{ from, to, reason }` where reason ∈ {`root`,`template-tag`,`injects`}
+- Aggregate: union of `allMethodsUsed` across component nodes.
+
+Traversal algorithm (BFS outline)
+1. Seed queue with roots (reason = `root`).
+2. For each dequeued class:
+   - If component: run Phase 1 analyzer; scan template for element selectors; enqueue matched components.
+   - Collect injected class types (constructor params + typed properties); enqueue them as services; add `injects` edges.
+3. Stop when queue empty or limits (`maxDepth`, `maxNodes`) reached.
+
+Safety limits
+- Default `maxNodes` = 500 (configurable).
+- `maxDepth` defaults to Infinity but can be provided.
+
+## Future Enhancements (Marked for Later)
+The following are recorded TODOs and are not yet implemented:
+1. Attribute & Structural Directive Selector Support
+   - Parse attributes (including `*` microsyntax) and match directive selectors (e.g. `[focusTrap]`, `*myIf`).
+   - Build a richer selector index (elements, attributes, classes) with normalization: `'[foo]' -> foo`, `'*ngIf' -> ngIf`.
+2. Route-based root discovery
+   - Derive root components from route configs (component + lazy module entry points).
+3. Enhanced service analysis
+   - Aggregate method usage for services, not just components (optional toggle).
+4. Robust template parsing
+   - Optionally leverage Angular compiler parser or an HTML tokenizer to reduce false negatives.
+
+These items will be updated here as they are implemented.
