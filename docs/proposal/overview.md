@@ -1,6 +1,6 @@
 # MenuId → Data Service Methods Mapping — Proposal Overview
 
-Status: Draft Overview
+Status: Draft Overview (Steps 1–8 specs now drafted)
 Scope: Defines staged approach to derive `menuId → { tnApiService: [methods...] }` mapping with controlled complexity.
 
 ## Goal (End-State)
@@ -38,7 +38,7 @@ Meaning: All *actually invoked* tn-api service methods reachable from the compon
 | 7 | Service Method Enrichment (Optional) | Distinguish direct vs propagated | Propagation labeling | If needed |
 | 8 | Diff & Validation (Optional) | Schema + diff tooling | N/A | Hardening |
 
-(Only Phases 1 & 2 being specified now; later phases deliberately postponed.)
+Specs drafted for all phases (see individual `step-N-*.md` documents).
 
 ## Data Structures (Cumulative)
 | Name | Shape | Origin Phase | Purpose |
@@ -49,6 +49,8 @@ Meaning: All *actually invoked* tn-api service methods reachable from the compon
 | menuAggregation | Map<menuId, Map<serviceKey, Set<methodName>>> | 4 | Build result |
 | selectorIndex (optional) | tag -> Set<classKey> | 5 | Template expansion |
 | routeTree (optional) | nested structure | 6 | Child route inheritance |
+| propagationMeta (optional) | service usage origin tags | 7 | Direct vs propagated |
+| diffArtifacts (optional) | prior vs current snapshots | 8 | Change tracking |
 
 ## Traversal Logic (Phase 4)
 For each `menuId`:
@@ -59,7 +61,7 @@ For each `menuId`:
    - Enqueue each injected class from `K.injects` unless visited.
 3. Serialize aggregated service methods.
 
-No method propagation unless an intermediate class itself contains the call. (Wrapper services that do not call the underlying tn-api service will not attribute methods; this preserves factual usage.)
+Clarification: Step 4 only records methods that are explicitly called in at least one visited class body. Visiting (or injecting) a service without any direct call to one of its methods does NOT cause that service (or any of its methods) to appear. No inferred / propagated usage is added until (and unless) optional Phase 7 is applied.
 
 ## Minimal Output Schema (menu-service-map-1) — Future
 (Not implemented yet)
@@ -69,8 +71,8 @@ No method propagation unless an intermediate class itself contains the call. (Wr
 ]
 ```
 
-## Deferred Items (Not in Current Spec)
-- Wrapper propagation (implied usage) without explicit method calls.
+## Deferred Items (Not in Current Implemented Set)
+- Wrapper propagation (implied usage) without explicit method calls (Phase 7 optional).
 - Service method usage inside services for non-tn-api classes.
 - Attribute / structural directive selectors.
 - Dynamic route / lazy module expansion.
@@ -83,9 +85,8 @@ No method propagation unless an intermediate class itself contains the call. (Wr
 
 ## Next Steps
 1. Implement Step 1 (service catalog) code + tests.
-2. Implement Step 2 (class & call index) spec (see `step-2-class-index.md`).
-3. Validate Phase 2 output on small fixture.
-4. Draft Phase 3 (menu roots) spec after Steps 1–2 pass tests.
+2. Implement Step 2 (class & call index) code + tests.
+3. Draft / implement Step 3 (menu roots) builder.
+4. Execute first end-to-end assembly (Step 4) to produce prototype `menu-service-map-1`.
 
 End of overview.
-
