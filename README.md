@@ -4,6 +4,22 @@ A TypeScript + Jest toolkit to analyze Angular components and routing configurat
 
 ## Features
 
+### Service Catalog (Step 1)
+Build a stable list of exported service classes matching inclusion globs.
+- Input: project root (default cwd) + one or more include globs (e.g. `**/*.service.ts`)
+- Output JSON: `{ schemaVersion: 'service-catalog-1', services: [{ key, file, className }], diagnostics: [] }`
+- Key format: `<absoluteFilePath>#<ClassName>` ensures uniqueness.
+
+Usage:
+```bash
+npm run analyze-services -- --include "**/*.service.ts"
+# Specify a project root
+npm run analyze-services -- --project ./__tests__/fixtures/catalog --include "**/*.service.ts"
+# Write JSON to file
+npm run analyze-services -- --include "**/*.service.ts" --out catalog.json
+```
+Currently only `--include` is implemented. Passing `--target-mods` will exit with a not-implemented message.
+
 ### Phase 1: Component Analysis
 - **Input**: component class name, its source file path, and an explicit list of target module specifiers.
 - **Output**: the set of methods invoked anywhere within the class on instances whose types originate from the target modules.
@@ -60,6 +76,9 @@ npm run analyze-recursive -- --root ./__tests__/fixtures/recursive/root.componen
 # With target modules, depth/node limits and JSON output written to file
 npm run analyze-recursive -- --root ./__tests__/fixtures/recursive/root.component.ts:RootComponent \
   --target-mods target-module --max-depth 5 --max-nodes 100 --json --out graph.json
+
+# Service catalog (Step 1)
+npm run analyze-services -- --include "**/*.service.ts"
 ```
 
 ## Usage Examples
@@ -196,6 +215,7 @@ Truncated sample output:
 - **analyze**: analyze Angular components for service usage patterns.
 - **analyze-routes**: find Angular routes with data.menuId properties.
 - **analyze-recursive**: experimental recursive component + service graph.
+- **analyze-services**: build service catalog (Step 1).
 
 ## JetBrains Rider
 - You can create run/debug configurations for npm scripts (test, test:watch, build, typecheck, analyze, analyze-routes) and share them as needed.

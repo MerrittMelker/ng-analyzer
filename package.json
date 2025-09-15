@@ -10,7 +10,8 @@
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "analyze": "ts-node src/cli/analyze.ts",
     "analyze-routes": "ts-node src/cli/analyze-routes.ts",
-    "analyze-recursive": "ts-node src/cli/analyze-recursive.ts"
+    "analyze-recursive": "ts-node src/cli/analyze-recursive.ts",
+    "analyze-services": "ts-node src/cli/analyze-services.ts"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
