@@ -1,8 +1,11 @@
 {
-  "name": "component-service-usages",
-  "version": "0.1.0",
+  "name": "ng-analyzer",
+  "version": "1.0.0",
+  "description": "Angular analysis toolset - spike workspace",
   "private": true,
-  "type": "commonjs",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "test": "jest --config jest.config.cjs --passWithNoTests",
     "test:watch": "jest --config jest.config.cjs --watch",
@@ -11,13 +14,16 @@
     "analyze": "ts-node src/cli/analyze.ts",
     "analyze-routes": "ts-node src/cli/analyze-routes.ts",
     "analyze-recursive": "ts-node src/cli/analyze-recursive.ts",
-    "analyze-services": "ts-node src/cli/analyze-services.ts"
+    "analyze-services": "ts-node src/cli/analyze-services.ts",
+    "build:service-catalog": "npm run build -w @ng-analyzer/service-catalog",
+    "test:service-catalog": "npm run test -w @ng-analyzer/service-catalog"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.25.4",
     "@babel/preset-typescript": "^7.24.7",
     "@types/jest": "^29.5.12",
+    "@types/node": "^20.0.0",
     "babel-jest": "^29.7.0",
     "jest": "^29.7.0",
     "ts-jest": "^29.2.5",
@@ -26,5 +32,9 @@
   },
   "dependencies": {
     "ts-morph": "^21.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   }
 }
