@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "jest",
+    "test": "jest --config jest.config.cjs",
     "dev": "tsc --watch"
   },
   "keywords": ["angular", "analysis", "services", "catalog"],
@@ -19,10 +19,5 @@
     "@types/jest": "^29.0.0",
     "ts-jest": "^29.0.0"
   },
-  "dependencies": {},
-  "jest": {
-    "preset": "ts-jest",
-    "testEnvironment": "node",
-    "testMatch": ["**/__tests__/**/*.test.ts"]
-  }
+  "dependencies": {}
 }

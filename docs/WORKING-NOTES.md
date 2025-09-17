@@ -43,6 +43,7 @@ This file is intentionally living / mutable (NOT an immutable ADR). When somethi
 (2025-09-17) Package Development Pattern: `packages/` contains clean, exportable, standalone tools; `src/` remains experimental/development code.
 (2025-09-17) Workspace Technology Choice: Using npm workspaces (packages/*), not using Angular workspace (projects); simpler than Lerna, Rush, Nx.
 (2025-09-17) Naming Conventions: Package folders in kebab-case, package names in scoped npm style, class names in PascalCase.
+(2025-09-17) Test Migration: Service catalog authoritative tests now live only under packages/service-catalog/__tests__; root test reduced to shim identity + minimal diagnostic check to prevent divergence.
 
 ---
 ## 3. Immediate Next Actions (High Resolution)

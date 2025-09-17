@@ -1,31 +1,14 @@
+import { buildServiceCatalog as shimBuild } from '../../src/service-catalog/buildServiceCatalog';
+import { buildServiceCatalog as pkgBuild } from '../../packages/service-catalog/src/buildServiceCatalog';
 import * as path from 'path';
-import { buildServiceCatalog } from '../../src/service-catalog/buildServiceCatalog';
 
-function fixtureRoot() {
-  return path.resolve(__dirname, '..', 'fixtures', 'catalog');
-}
-
-describe('buildServiceCatalog (Step 1)', () => {
-  test('collects exported classes from matching service files', () => {
-    const root = fixtureRoot();
-    const result = buildServiceCatalog({ projectRoot: root, includeGlobs: ['**/*.service.ts'] });
-    expect(result.schemaVersion).toBe('service-catalog-1');
-    const names = result.services.map(s => s.className);
-    expect(names).toEqual(['PhonesService', 'UsersService']);
-    expect(result.services.every(s => s.key.endsWith(`#${s.className}`))).toBe(true);
-    expect([...names]).toEqual([...names].sort());
-    expect(result.diagnostics.filter(d => d.includes('no-exported-classes'))).toHaveLength(0);
+describe('service-catalog root shim', () => {
+  test('shim and package export refer to the same implementation', () => {
+    expect(shimBuild).toBe(pkgBuild);
   });
 
-  test('empty result when no files match glob', () => {
-    const root = fixtureRoot();
-    const result = buildServiceCatalog({ projectRoot: root, includeGlobs: ['**/*.data.ts'] });
-    expect(result.services).toHaveLength(0);
-  });
-
-  test('diagnostic when include globs missing', () => {
-    const root = fixtureRoot();
-    const result = buildServiceCatalog({ projectRoot: root, includeGlobs: [] });
+  test('shim still produces expected minimal diagnostics on empty include', () => {
+    const result = shimBuild({ projectRoot: path.resolve(__dirname, '..', 'fixtures', 'catalog'), includeGlobs: [] });
     expect(result.services).toHaveLength(0);
     expect(result.diagnostics.some(d => d.toLowerCase().includes('no include globs'))).toBe(true);
   });
